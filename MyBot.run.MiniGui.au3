@@ -1229,7 +1229,7 @@ Func LaunchBotBackend($bNoGUI = True)
 
 	$sParam = StringStripWS($sParam & ($bNoGUI ? " /ng" : "") & " /guipid=" & @AutoItPID, 3)
 	Local $cmd = """" & @ScriptDir & "\MyBot.run.exe"""
-	If @Compiled = 0 Then $cmd = """" & @AutoItExe & """ /AutoIt3ExecuteScript """ & @ScriptDir & "\MyBot.run.au3" & """"
+	If @Compiled = 0 Then $cmd = """" & @AutoItExe & """ /AutoIt3ExecuteScript """ & @ScriptDir & "\MyBot2.run.au3" & """"
 	$cmd &= " " & $sParam
 
 	; wait 5 Minutes for bot to complete boot
