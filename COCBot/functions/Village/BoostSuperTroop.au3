@@ -15,14 +15,6 @@
 
 Func BoostSuperTroop($bTest = False, $bForced = False)
 	If Not $g_bSuperTroopsEnable Then Return
-	
-	If $g_iTxtSmartMinDark < 25000 Or $g_iUpgradeMinDark < 25000 Then 
-		$g_iTxtSmartMinDark = 25000
-		$g_iUpgradeMinDark = 25000
-		ApplyConfig()
-		SetLog("Set minimum DE = " & $g_iTxtSmartMinDark, $COLOR_DEBUG1)
-	EndIf
-	
 	If Not $g_bRunState Then Return
 	If $g_iTownHallLevel < 11 Then Return
 	If $g_iCommandStop = 0 Or $g_iCommandStop = 3 Then ;halt attack.. do not boost now
@@ -31,35 +23,35 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 			Return False
 		EndIf
 	EndIf
-	
+
 	;assign("g_bSuperTroopBoosted", False)
-	If $g_bSuperTroopBoosted And Not $bForced Then 
+	If $g_bSuperTroopBoosted And Not $bForced Then
 		SetLog("Troop Already Boosted on last check..., skip boost SuperTroop", $COLOR_SUCCESS)
 		Return ;Troop already checked and boosted
 	EndIf
-	
+
 	CheckMainScreen()
 	If _Sleep(50) Then Return
 	If Not CheckZoomOut("BoostSuperTroop") Then ZoomOut()
-	
+
 	If Not $g_bRunState Then Return
 	VillageReport(True, True)
 	If Not $g_bRunState Then Return
-	
+
 	If Not OpenBarrel($bForced) Then Return False
-	
+
 	Local $iPicsPerRow = 4, $picswidth = 160, $picspad = 19
 	Local $curRow = 1, $columnStart = 78, $iY = 307, $iY1 = 465
 	Local $BoostCost = 0, $BoostDuration = 0
 	Local $sTroopName = "", $iRow = 1
 	Local $iX = 0, $iX1 = $iX + $picswidth
-		
+
 	For $i = 0 To UBound($g_iCmbSuperTroops) - 1
 		If Not $g_bRunState Then Return
 		If $g_iCmbSuperTroops[$i] > 0 Then
 			$sTroopName = $g_asSuperTroopNames[$g_iCmbSuperTroops[$i] - 1]
 			SetLog("[" & $i + 1 & "] Trying to boost " & $sTroopName, $COLOR_INFO)
-			
+
 			$iX = $columnStart
 			$iX1 = $iX + $picswidth
 			Select
@@ -83,7 +75,7 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 				$iY = 403
 				$iY1 = 563
 			EndIf
-			
+
 			If Not $g_bRunState Then Return
 			If _Sleep(1000) Then Return
 			If QuickMIS("BC1", $g_sImgBoostTroopsClock, $iX, $iY, $iX1, $iY1) Then ;find pics Clock on spesific row / column (if clock found = troops already boosted)
@@ -93,7 +85,7 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 			Else
 				If $g_bDebugSetLog Then SetLog("Clock Image Not Found", $COLOR_DEBUG)
 			EndIf
-			
+
 			If Not $g_bRunState Then Return
 			If _Sleep(1000) Then Return
 			SetLog("[" & $i + 1 & "]" & $sTroopName & ", Currently is not boosted", $COLOR_INFO)
@@ -102,22 +94,22 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 				Click($g_iQuickMISX, $g_iQuickMISY)
 				If _Sleep(1000) Then Return
 				If $g_bForceUseSuperTroopPotion Then
-					If BoostWithPotion($sTroopName, $bTest) Then ContinueLoop
+					If BoostWithPotion($sTroopName, $g_iQuickMISX, $g_iQuickMISY, $bTest) Then ContinueLoop
 				EndIf
-				
+
 				Setlog("Using Dark Elixir...", $COLOR_INFO)
 				If QuickMIS("BC1", $g_sImgBoostTroopsButtons, 670, 530, 705, 570) Then ;find image of dark elixir button
 					;Check Red Value on Dark Elixir cost
 					If _PixelSearch(584, 556, 630, 557, Hex(0xFF887F, 6), 10, True, "BoostSuperTroop") Then
 						SetLog("Not enough DE for boost, check boost with potion", $COLOR_ACTION)
-						If BoostWithPotion($sTroopName, $bTest) Then
+						If BoostWithPotion($sTroopName, -1, -1, $bTest) Then
 							ContinueLoop
 						Else
 							SetLog("No DE or Super potion for boost, EXIT!", $COLOR_ERROR)
 							ExitLoop
 						EndIf
 					EndIf
-					
+
 					Click($g_iQuickMISX, $g_iQuickMISY)
 					If _Sleep(1500) Then Return
 					If QuickMIS("BC1", $g_sImgGeneralCloseButton, 624, 139, 680, 187) Then ;find image of Close Button
@@ -134,7 +126,7 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 						ClickAway()
 						ContinueLoop
 					EndIf
-					
+
 				Else
 					If Not $bTest Then Setlog("Could not find dark elixir button for upgrade " & $sTroopName, $COLOR_ERROR)
 					ClickAway()
@@ -148,12 +140,12 @@ Func BoostSuperTroop($bTest = False, $bForced = False)
 		EndIf
 		If _Sleep(1000) Then Return
 	Next
-	
+
 	ClickAway()
 	If _Sleep(1000) Then Return
 	If QuickMIS("BC1", $g_sImgGeneralCloseButton, 780, 80, 830, 125) Then Click($g_iQuickMISX, $g_iQuickMISY) ;close boost dialog window
 	If IsBoostWindowOpened() Then Click(770, 138) ;close boost window
-	
+
 	Return $g_bSuperTroopBoosted
 EndFunc   ;==>BoostSuperTroop
 
@@ -163,13 +155,13 @@ Func OpenBarrel($bForced = False)
 	Local $xBarrel = 0, $yBarrel = 0, $sColorCheckText = ""
 	Local $xColorCheck = 0, $y1ColorCheck = 0, $y2ColorCheck = 0
 	Local $Color1 = "", $Color2 = "", $bBar1Found = False, $bBar2Found = False
-	
+
 	If Not $g_bRunState Then Return
-	
+
 	If QuickMIS("BC1", $g_sImgBoostTroopsBarrel, 60, 120, 220, 260) Then
 		$xBarrel = $g_iQuickMISX
 		$yBarrel = $g_iQuickMISY
-		
+
 		; Check if is already boosted.
 		Local $EnabledStroop = 0
 		For $i = 0 To Ubound($g_iCmbSuperTroops) - 1
@@ -177,53 +169,54 @@ Func OpenBarrel($bForced = False)
 				$EnabledStroop += 1
 			EndIf
 		Next
-		
+
 		If $g_bDebugSetLog Then SetLog("Barrel Found at [" & $xBarrel & "," & $yBarrel & "]", $COLOR_DEBUG1)
 		Local $xColorCheck = $xBarrel - 9
 		Local $y1ColorCheck = $yBarrel - 18
 		Local $y2ColorCheck = $yBarrel - 30
-		
+
 		$Color1 = _GetPixelColor($xColorCheck, $y1ColorCheck, True)
 		$Color2 = _GetPixelColor($xColorCheck, $y2ColorCheck, True)
-		
+
 		If $g_bDebugSetLog Then SetLog("Check Boost[1] at [" & $xColorCheck & "," & $y1ColorCheck & "] : " & $Color1, $COLOR_DEBUG1)
 		If $g_bDebugSetLog Then SetLog("Check Boost[2] at [" & $xColorCheck & "," & $y2ColorCheck & "] : " & $Color2, $COLOR_DEBUG1)
-		
+
 		SetLog("Enabled Boost Super Troop count: " & $EnabledStroop, $COLOR_INFO)
-		
+
 		$sColorCheckText = "BoostCheck1"
 		If _ColorCheck($Color1, Hex(0xF26400, 6), 30, Default, $sColorCheckText) Or _ColorCheck($Color1, Hex(0xF8AA1C, 6), 30, Default, $sColorCheckText) Or _ColorCheck($Color1, Hex(0xFAD128, 6), 30, Default, $sColorCheckText) Then
 			SetLog("Boost[1] Detected", $COLOR_SUCCESS)
 			$bBar1Found = True
 		EndIf
-		
+
 		$sColorCheckText = "BoostCheck2"
 		If _ColorCheck($Color2, Hex(0xF25D00, 6), 30, Default, $sColorCheckText) Or _ColorCheck($Color2, Hex(0xF47900, 6), 30, Default, $sColorCheckText) Or _ColorCheck($Color2, Hex(0xFAC928, 6), 30, Default, $sColorCheckText) Then
 			SetLog("Boost[2] Detected", $COLOR_SUCCESS)
 			$bBar2Found = True
 		EndIf
-		
-		If $EnabledStroop = 1 And $bBar1Found Then 
+
+		If $EnabledStroop = 1 And $bBar1Found Then
 			$bOpenBarrel = False
 			$g_bSuperTroopBoosted = True
 		EndIf
-		
+
 		If $EnabledStroop = 1 And $bBar2Found Then
-			SetLog("Enabled Boost SuperTroop : 1, Detected 2 Boost on Barrel", $COLOR_DEBUG2)
-			SetLog("Be Sure to check your boost if you do 2nd boost manually", $COLOR_DEBUG)
-			$bForced = True
+			For $i = 1 To 10
+				SetLog("Enabled Boost SuperTroop : 1, Detected 2 Boost on Barrel", $COLOR_ERROR)
+			Next
+			SetLog("Be Sure to check your boost if you do 2nd boost manually", $COLOR_INFO)
 		EndIf
-		
+
 		If $EnabledStroop = 2 And $bBar2Found Then
 			$bOpenBarrel = False
 			$g_bSuperTroopBoosted = True
 		EndIf
-		
+
 		If $bForced Then
 			SetLog("Forced To Open Barrel", $COLOR_INFO)
 			$bOpenBarrel = True
-		EndIf		
-		
+		EndIf
+
 		If $bOpenBarrel Then
 			CheckSuperTroopPotion()
 			Click($xBarrel, $yBarrel)
@@ -255,10 +248,10 @@ Func CheckSuperTroopPotion()
 			$Count = $asReadItemCount[0]
 			$MaxCount = $asReadItemCount[1]
 		EndIf
-		
+
 		SetLog("Super Troop Potion Count: " & $Count & "/" & $MaxCount, $COLOR_SUCCESS)
 		$g_bHaveSuperTroopPotion = True
-		If Number($Count) = Number($MaxCount) Then 
+		If Number($Count) = Number($MaxCount) Then
 			$g_bForceUseSuperTroopPotion = True
 			SetLog("SuperTroop Potion on TH Storage is Full", $COLOR_SUCCESS)
 		EndIf
@@ -267,13 +260,13 @@ Func CheckSuperTroopPotion()
 		$g_bForceUseSuperTroopPotion = False
 		$g_bHaveSuperTroopPotion = False
 	EndIf
-	
+
 	If Number($g_aiCurrentLoot[$eLootDarkElixir]) < 25000 And Number($Count) > 0 Then
 		SetLog("Current DE < than 25000, force use potion", $COLOR_ACTION)
 		$g_bForceUseSuperTroopPotion = True
 		$g_bHaveSuperTroopPotion = True
 	EndIf
-	
+
 	ClickAway()
 	If _Sleep(1000) Then Return
 EndFunc
@@ -307,41 +300,48 @@ Func CancelBoost($aMessage = "")
 	If _Sleep(1000) Then Return
 EndFunc   ;==>CancelBoost
 
-Func BoostWithPotion($sTroopName = "", $bTest = False)
+Func BoostWithPotion($sTroopName = "", $iTroopX = -1, $iTroopY = -1, $bTest = False)
 	SetLog("Forcing use SuperTroop Potion", $COLOR_INFO)
 	Setlog("Let's try boosting " & $sTroopName & " with potion", $COLOR_INFO)
-	
-	If Not $g_bHaveSuperTroopPotion Then 
+
+	If Not $g_bHaveSuperTroopPotion And Not $bTest Then
 		SetLog("Not Have Super Troop Potion on TH Storage", $COLOR_ERROR)
 		Return False
 	EndIf
-	
+
+	Local $bTroopBoosted = False, $bIsAlreadyOpened = False
 	If QuickMIS("BC1", $g_sImgBoostTroopsPotion, 500, 530, 540, 570) Then ;find image of Super Potion
 		Click($g_iQuickMISX, $g_iQuickMISY)
 		If _Sleep(1500) Then Return
-		If QuickMIS("BC1", $g_sImgBoostTroopsPotion, 320, 400, 530, 520) Then ;find image of Super Potion again (confirm upgrade)
+
+		; Check and wait for the [X] button of the confirm boost window to appear
+		If IsWindowOpen($g_sImgGeneralCloseButton, 3, 1000, GetDiamondFromRect2(630, 140, 680, 190)) Then
 			;do click boost
 			If $bTest Then
-				CancelBoost("Using Potion, should click on [" & $g_iQuickMISX & "," & $g_iQuickMISY & "]")
+				SetLog("Cancel boosting " & $sTroopName & " only testing", $COLOR_DEBUG1)
+				Click($g_avWindowCoordinates[0], $g_avWindowCoordinates[1]) ; [X] button found by IsWindowOpen
 			Else
-				Click($g_iQuickMISX, $g_iQuickMISY)
+				Click(425, 470)
 				Setlog("Using Potion, Successfully Boost " & $sTroopName, $COLOR_SUCCESS)
-				Return True
+				$bTroopBoosted = True
 			EndIf
 		Else
 			Setlog("Could not find Potion button for final upgrade " & $sTroopName, $COLOR_ERROR)
 			NotifyPushToTelegram($g_sProfileCurrentName & ": Failed to boost SuperTroop using potion.")
 			ClickAway()
-			Return False
 		EndIf
 	Else
 		Setlog("Could not find Potion button", $COLOR_ERROR)
-		If QuickMIS("BC1", $g_sImgGeneralCloseButton, 780, 80, 830, 125) Then Click($g_iQuickMISX, $g_iQuickMISY) ;close boost dialog window
-		Return False
+		$bIsAlreadyOpened = True ; Super troop boost window is already opened
 	EndIf
+
+	If Not $bTroopBoosted Then
+		If Not $bIsAlreadyOpened And $iTroopX <> -1 And $iTroopY <> -1 Then
+			SetLog("Reopening " & $sTroopName & " boost window", $COLOR_ACTION)
+			If _Sleep(1000) Then Return
+			Click($iTroopX, $iTroopY) ; Back to troop window if potion boost failed
+		EndIf
+	EndIf
+
+	Return $bTroopBoosted
 EndFunc
-
-
-
-
-
